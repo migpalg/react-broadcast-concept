@@ -12,7 +12,6 @@ export function StatusBadge({ id, status }) {
     const hasUpdate = !!target;
 
     if (hasUpdate) {
-      console.log("has update!", id);
       setStatus(target);
     }
   }, []);

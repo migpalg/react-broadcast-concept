@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useBroadcastChannel } from "../hooks/use-broadcast";
+import StatusWorker from "../workers/status-worker?worker";
 
 function randomIntFromInterval(min, max) {
   // min and max included
@@ -30,22 +31,36 @@ export function StatusEvents({ children }) {
   }, []);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      const updated = randomIntFromInterval(
-        0,
-        registeredEntities.current.size - 1
-      );
+    const worker = new StatusWorker();
 
-      updateBroadcast.postMessage({
-        type: "UPDATE",
-        statuses: {
-          [[...registeredEntities.current][updated]]: "MCK",
-        },
-      });
-    }, 3000);
+    worker.postMessage({
+      action: "FETCH_STATUSES",
+    });
+
+    worker.addEventListener("message", function (event) {
+      const action = event.data;
+
+      if (action.type === "STATUSES_UPDATE") {
+        const updated = randomIntFromInterval(
+          0,
+          registeredEntities.current.size - 1
+        );
+
+        updateBroadcast.postMessage({
+          type: "UPDATE",
+          statuses: {
+            [[...registeredEntities.current][updated]]: "MCK",
+          },
+        });
+      }
+    });
 
     return () => {
-      clearInterval(id);
+      worker.postMessage({
+        action: "STOP_FETCH_STATUSES",
+      });
+
+      worker.terminate();
     };
   }, []);
 
